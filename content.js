@@ -71,6 +71,10 @@
 
   // background / popup からのメッセージを受信
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message.action === "ping") {
+      sendResponse({ pong: true });
+      return;
+    }
     if (message.action === "extract") {
       try {
         const result = extractAndConvert();

@@ -25,6 +25,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
  */
 async function clipPage(tabId) {
   try {
+    // content scriptが注入されていない場合に備えてフォールバック注入
+    await ensureContentScript(tabId);
     const response = await chrome.tabs.sendMessage(tabId, { action: "extract" });
     if (!response?.success) {
       console.error("MD Clipper: extraction failed", response?.error);
@@ -33,6 +35,22 @@ async function clipPage(tabId) {
     await downloadMarkdown(response.data.markdown, response.data.title);
   } catch (err) {
     console.error("MD Clipper: error", err);
+  }
+}
+
+/**
+ * content scriptが未注入のタブに対してスクリプトを注入する
+ * @param {number} tabId
+ */
+async function ensureContentScript(tabId) {
+  try {
+    await chrome.tabs.sendMessage(tabId, { action: "ping" });
+  } catch {
+    // メッセージ送信に失敗 = content script未注入
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["lib/readability.js", "lib/turndown.js", "content.js"],
+    });
   }
 }
 
@@ -50,20 +68,15 @@ async function downloadMarkdown(markdown, title) {
 
   const path = subfolder ? `${subfolder}/${filename}` : filename;
 
-  // Blob URLを生成してダウンロード
-  const blob = new Blob([markdown], { type: "text/markdown" });
-  const url = URL.createObjectURL(blob);
+  // data URLでダウンロード（Service WorkerではBlob URLが使えないため）
+  const dataUrl =
+    "data:text/markdown;charset=utf-8," + encodeURIComponent(markdown);
 
-  try {
-    await chrome.downloads.download({
-      url,
-      filename: path,
-      saveAs: false,
-    });
-  } finally {
-    // 少し待ってからURLを解放（ダウンロード開始を待つ）
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-  }
+  await chrome.downloads.download({
+    url: dataUrl,
+    filename: path,
+    saveAs: false,
+  });
 }
 
 /**

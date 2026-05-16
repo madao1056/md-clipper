@@ -26,6 +26,16 @@ let currentMarkdown = "";
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) throw new Error("タブが見つかりません");
 
+    // content scriptが未注入の場合に備えてフォールバック注入
+    try {
+      await chrome.tabs.sendMessage(tab.id, { action: "ping" });
+    } catch {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ["lib/readability.js", "lib/turndown.js", "content.js"],
+      });
+    }
+
     const response = await chrome.tabs.sendMessage(tab.id, { action: "extract" });
     if (!response?.success) throw new Error(response?.error || "抽出に失敗しました");
 

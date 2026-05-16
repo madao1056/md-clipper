@@ -3,7 +3,7 @@
   "name": "MD Clipper",
   "version": "1.0.0",
   "description": "Webページをワンクリックでマークダウン保存",
-  "permissions": ["activeTab", "downloads", "storage", "contextMenus"],
+  "permissions": ["activeTab", "downloads", "storage", "contextMenus", "scripting"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
