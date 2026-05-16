@@ -1,4 +1,8 @@
 (() => {
+  // 重複注入ガード
+  if (window.__mdClipperLoaded) return;
+  window.__mdClipperLoaded = true;
+
   /**
    * content.js — ページ本文の抽出とMarkdown変換
    * Readability.jsで本文抽出 → Turndown.jsでHTML→Markdown変換
